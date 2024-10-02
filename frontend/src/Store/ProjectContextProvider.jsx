@@ -1,4 +1,6 @@
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
+import sendAPIRequest from "../utils/ApiRequest";
+import { useParams } from "react-router-dom";
 
 export const ProjectContext = createContext({
   projectData: {},
@@ -11,16 +13,36 @@ export const ProjectContext = createContext({
   removeTask: () => {},
 });
 export default function ProjectContextProvider({ children }) {
+  const { projectId } = useParams();
   const [projectsState, setProjectsState] = useState({
     projects: [],
     selectedProjectId: undefined,
+    currentSelectedProject: undefined,
   });
 
-  function handleSelectProject(id) {
+  useEffect(() => {
+    const fetchData = async () => {
+      const request = await sendAPIRequest("GET", null, "getAllProjects");
+
+      if (!request.ok) {
+        console.error("Error while getting projects");
+        return;
+      }
+      setProjectsState({
+        projects: request.data,
+        selectedProjectId: undefined,
+        currentSelectedProject: undefined,
+      });
+    };
+    fetchData();
+  }, []);
+
+  async function handleSelectProject(data) {
     setProjectsState((prevState) => {
       return {
         ...prevState,
-        selectedProjectId: id,
+        selectedProjectId: data._id,
+        currentSelectedProject: data,
       };
     });
   }
@@ -36,29 +58,38 @@ export default function ProjectContextProvider({ children }) {
 
   function handleAddNewProject(project) {
     setProjectsState((prevState) => {
-      const newProject = {
-        ...project,
-        id: prevState.projects.length + 1,
-      };
-
       return {
         ...prevState,
-        projects: [...prevState.projects, newProject],
+        projects: [
+          ...prevState.projects,
+          { _id: project.projectId, title: project.title },
+        ],
       };
     });
   }
 
-  function handleProjectDelete() {
+  async function handleProjectDelete() {
     console.log(projectsState);
-    setProjectsState((prevState) => {
-      const filteredOut = prevState.projects.filter((project) => {
-        return project.id !== prevState.selectedProjectId;
-      });
+    const request = await sendAPIRequest(
+      "POST",
+      { id: projectsState.selectedProjectId },
+      "deleteProject"
+    );
 
+    if (!request.ok) {
+      console.error("Error while deleting project");
+      return;
+    }
+
+    const somet = projectsState.projects.filter((project) => {
+      return project._id !== request.data._id;
+    });
+
+    setProjectsState((prevState) => {
       return {
         ...prevState,
         selectedProjectId: undefined,
-        projects: filteredOut,
+        projects: somet,
       };
     });
   }
@@ -72,35 +103,42 @@ export default function ProjectContextProvider({ children }) {
     });
   }
 
-  function handleAddProjectTasks(task) {
-    const projectIndex = projectsState.projects.findIndex((project) => {
-      return project.id === projectsState.selectedProjectId;
-    });
+  async function handleAddProjectTasks(task) {
+    const request = await sendAPIRequest(
+      "POST",
+      { id: projectsState.selectedProjectId, task, completed: false },
+      "addTaskToProject"
+    );
 
-    projectsState.projects[projectIndex].tasks.push(task);
+    if (!request.ok) {
+      console.error("Error while adding tasks to project");
+      return;
+    }
 
     setProjectsState((prevState) => {
       return {
         ...prevState,
-        projects: [...prevState.projects],
+        currentSelectedProject: request.data,
       };
     });
   }
 
-  function removeTaskFromProject(id) {
-    const projectIndex = projectsState.projects.findIndex((project) => {
-      return project.id === projectsState.selectedProjectId;
-    });
-    projectsState.projects[projectIndex].tasks = projectsState.projects[
-      projectIndex
-    ].tasks.filter((task) => {
-      return task.id !== id;
-    });
+  async function removeTaskFromProject(id) {
+    const request = await sendAPIRequest(
+      "POST",
+      { id: projectsState.selectedProjectId, taskId: id },
+      "removeTaskFromProject"
+    );
+
+    if (!request.ok) {
+      console.error("Error while adding tasks to project");
+      return;
+    }
 
     setProjectsState((prevState) => {
       return {
         ...prevState,
-        projects: [...prevState.projects],
+        currentSelectedProject: request.data,
       };
     });
   }

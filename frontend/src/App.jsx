@@ -1,11 +1,9 @@
-import ProjectContextProvider from "./Store/ProjectContextProvider";
-import ProjectViewWindow from "./components/ProjectViewWindow";
+import ProjectViewWindow from "./components/Projects/ProjectViewWindow";
+
 function App() {
   return (
     <>
-      <ProjectContextProvider>
-        <ProjectViewWindow />
-      </ProjectContextProvider>
+      <ProjectViewWindow />
     </>
   );
 }

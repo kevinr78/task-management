@@ -1,14 +1,21 @@
-import { useRef } from "react";
-import Input from "./Input";
-import Modal from "./Modal";
+import { useRef, useContext } from "react";
+import Input from "../Utils/Input";
+import Modal from "../Utils/Modal";
+import { useNavigate } from "react-router-dom";
+import { ProjectContext } from "../../Store/ProjectContextProvider";
+
+import sendAPIRequest from "../../utils/ApiRequest";
 
 export default function ({ onSave, onCancel }) {
+  const { projectsState, ...operations } = useContext(ProjectContext);
+  const navigate = useNavigate();
+
   const title = useRef();
   const description = useRef();
   const dueDate = useRef();
   const modal = useRef();
 
-  function createNewProject() {
+  async function createNewProject() {
     const titleValue = title.current.value.trim();
     const descriptionValue = description.current.value.trim();
     const dueDateValue = dueDate.current.value.trim();
@@ -17,12 +24,23 @@ export default function ({ onSave, onCancel }) {
       modal.current.open();
       return;
     }
-    onSave({
+    const data = {
       title: titleValue,
       description: descriptionValue,
       dueDate: dueDateValue,
-      tasks: [],
+    };
+    const request = await sendAPIRequest("POST", data, "newProject");
+
+    if (!request.ok) {
+      console.error("Error while creating project");
+      return;
+    }
+
+    operations.addNewProject({
+      title: data.title,
+      projectId: request.data,
     });
+
     title.current.value = "";
     description.current.value = "";
     dueDate.current.value = "";
@@ -33,11 +51,13 @@ export default function ({ onSave, onCancel }) {
         <h2 className="text-bold font-bold">Error</h2>
         <p>Please fill all the fields</p>
       </Modal>
-      <div className="w-[35rem] mt-16">
+      <div className="w-full mt-16 px-10">
         <menu className="flex items-center justify-end gap-4 my-4">
           <li>
             <button
-              onClick={onCancel}
+              onClick={() => {
+                navigate("/");
+              }}
               className="text-stone-800 hover:text-stone-950"
             >
               Cancel
@@ -70,7 +90,7 @@ export default function ({ onSave, onCancel }) {
           <Input
             ref={dueDate}
             defaultValue="09-09-2024"
-            label="Date"
+            label=" Due Date"
             textarea={false}
             type="date"
           />

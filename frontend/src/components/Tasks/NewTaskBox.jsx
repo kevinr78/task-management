@@ -1,6 +1,6 @@
 import { useRef } from "react";
-import Input from "./Input";
-import Button from "./Button";
+import Input from "../Utils/Input";
+import Button from "../Utils/Button";
 
 export default function NewTaskBox({ onAdd }) {
   const taskName = useRef();
@@ -11,7 +11,7 @@ export default function NewTaskBox({ onAdd }) {
       return;
     }
 
-    onAdd({ id: Date.now(), task: taskTitle });
+    onAdd(taskTitle);
     taskName.current.value = "";
   }
   return (

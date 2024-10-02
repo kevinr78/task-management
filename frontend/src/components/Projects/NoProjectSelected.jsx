@@ -1,9 +1,12 @@
 import React from "react";
-import Button from "./Button";
-import noProjectImage from "../assets/no-projects.png";
+import Button from "../Utils/Button";
+import noProjectImage from "../../assets/no-projects.png";
+import { useNavigate } from "react-router-dom";
 export default function NoProjectSelected({ onStartAddProject }) {
+  const navigate = useNavigate();
+
   return (
-    <div className="mt-24 text-center w-2/3">
+    <div className="mt-24 text-center w-full">
       <img
         src={noProjectImage}
         alt="An empty task list"
@@ -16,7 +19,13 @@ export default function NoProjectSelected({ onStartAddProject }) {
         Select a project or get started with a new one
       </p>
       <p className="mt-8">
-        <Button onClick={onStartAddProject}>Create New Project</Button>
+        <Button
+          onClick={() => {
+            navigate("/home/newProject");
+          }}
+        >
+          Create New Project
+        </Button>
       </p>
     </div>
   );
