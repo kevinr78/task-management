@@ -39,7 +39,9 @@ const loginController = async function (req, res, next) {
       ok: true,
       message: "User Logged in Successfully",
       token,
+      role: doesUserExist.role,
       name: doesUserExist.name,
+      id: doesUserExist._id,
     });
   } catch (error) {
     next(error);
@@ -87,7 +89,9 @@ const registerController = async function (req, res, next) {
         message: "User created Successfully",
         ok: true,
         token,
+        role: newUser.role,
         name: newUser.name,
+        id: newUser._id,
       });
     } catch (error) {
       throw createNewError(400, "Error while creating user");
@@ -127,6 +131,21 @@ function validateUserData(email, password) {
   };
 }
 
+const getUsers = async function (req, res, next) {
+  try {
+    const allUsers = await UserEntity.find({ role: "normal" });
+    if (!allUsers) {
+      throw createNewError(404, "Error while getting users");
+    }
+
+    return res
+      .status(200)
+      .json({ ok: true, message: "Got all users", users: allUsers });
+  } catch (error) {
+    next(error);
+  }
+};
+
 function createNewError(status, message) {
   let err;
   err = new Error(message);
@@ -134,4 +153,4 @@ function createNewError(status, message) {
   return err;
 }
 
-export { loginController, registerController };
+export { loginController, registerController, getUsers };

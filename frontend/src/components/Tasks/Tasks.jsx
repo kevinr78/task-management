@@ -4,6 +4,7 @@ import NewTask from "./NewTask";
 import Modal from "../Utils/Modal";
 import Button from "../Utils/Button";
 import { ProjectContext } from "../../Store/ProjectContextProvider";
+import { userDetails } from "../../utils/user";
 
 export default function Tasks() {
   const { projectData, ...operations } = useContext(ProjectContext);
@@ -11,13 +12,14 @@ export default function Tasks() {
 
   function handleCtaClick(e) {
     const ctaAction = e.target.name;
-    const parentLiElement = e.target.parentElement.parentElement;
+    const parentLiElement = e.target.parentElement.parentElement.parentElement;
     const elementId = parentLiElement.dataset.id;
     switch (ctaAction) {
       case "clear-task":
         removeTask(parentLiElement, elementId);
         break;
       case "mark-as-completed":
+        break;
         markAsCompleted(parentLiElement, elementId);
         break;
       default:
@@ -36,6 +38,7 @@ export default function Tasks() {
   function markAsCompleted(element, id) {
     const dd = element.children[0].children[0].classList;
 
+    operations.markTask(id);
     if (element.tagName === "LI") {
       if (!dd.contains("line-through")) {
         dd.toggle("line-through");
@@ -53,21 +56,22 @@ export default function Tasks() {
     operations.addProjectTask(task);
     modal.current.closeModal();
   }
+  const role = userDetails.role || localStorage.getItem("role");
   return (
-    <section className="overflow-auto max-h-64">
+    <section className="overflow-auto flex-1">
       <Modal ref={modal}>
         <NewTaskBox onAdd={addTask} />
       </Modal>
       <div className="flex justify-between px-4 sticky">
         <h2 className="text-2xl font-bold mb-4">Tasks</h2>
-        <Button onClick={openModal}>Add Tasks</Button>
+        {role == "admin" && <Button onClick={openModal}>Add Tasks</Button>}
       </div>
       {projectData.currentSelectedProject.tasks.length === 0 ? (
         <p>No Task for projects</p>
       ) : (
         <ul onClick={handleCtaClick}>
-          {projectData.currentSelectedProject.tasks.map((taskItem) => {
-            return <NewTask task={taskItem} />;
+          {projectData.currentSelectedProject.tasks.map((taskItem, idx) => {
+            return <NewTask task={taskItem} key={idx} />;
           })}
         </ul>
       )}

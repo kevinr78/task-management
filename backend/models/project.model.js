@@ -15,12 +15,26 @@ const ProjectSchema = new mongoose.Schema({
     type: Date,
     required: true,
   },
+  assignedTo: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User", // Ref to User model
+    },
+  ],
   by_user: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "User",
     required: true,
   },
-  tasks: [],
+  tasks: [
+    {
+      taskId: String,
+      taskTitle: String,
+      username: String,
+      assignedTo: mongoose.Schema.Types.ObjectId,
+      completed: Boolean,
+    },
+  ],
 });
 
 export default mongoose.model("Project", ProjectSchema);

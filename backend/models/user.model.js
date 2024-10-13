@@ -15,7 +15,7 @@ const UserSchema = new mongoose.Schema({
     required: true,
     min: 5,
   },
-  type: {
+  role: {
     type: String,
     required: true,
     default: "normal",

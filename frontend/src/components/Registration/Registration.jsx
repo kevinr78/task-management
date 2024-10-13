@@ -1,5 +1,6 @@
 import { useState } from "react";
 import sendAPIRequest from "../../utils/ApiRequest";
+import { userDetails } from "../../utils/user";
 import { Form, useNavigate } from "react-router-dom";
 
 export default function Example() {
@@ -23,8 +24,8 @@ export default function Example() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     const endPoint = isRegister ? "register" : "login";
-    console.log(formData);
-    const { ok, token, name } = await sendAPIRequest(
+
+    const { ok, token, role, name, id } = await sendAPIRequest(
       "POST",
       formData,
       endPoint
@@ -37,8 +38,14 @@ export default function Example() {
       return;
     }
     localStorage.setItem("token", token);
+    localStorage.setItem("role", role);
     localStorage.setItem("name", name);
-    navigate("/home");
+    localStorage.setItem("id", id);
+    userDetails.name = name;
+    userDetails.role = role;
+    userDetails.id = id;
+
+    navigate("/home", { state: { id } });
   };
 
   return (
