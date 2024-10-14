@@ -1,7 +1,10 @@
-import { useContext } from "react";
+import { useContext, useEffect } from "react";
+
 import { Outlet } from "react-router-dom";
 import Sidebar from "../Utils/Sidebar";
 import ProjectContextProvider from "../../Store/ProjectContextProvider";
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 export default function ProjectViewWindow() {
   return (
@@ -12,6 +15,16 @@ export default function ProjectViewWindow() {
           <Outlet />
         </div>
       </ProjectContextProvider>
+      <ToastContainer
+        position="bottom-right"
+        autoClose={100000}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        transition:Bounce
+      />
     </div>
   );
 }

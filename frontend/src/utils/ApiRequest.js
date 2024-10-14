@@ -10,7 +10,7 @@ const sendAPIRequest = async function (method, body = null, endpoint) {
     options.headers["Authorization"] = "Bearer " + token;
   }
 
-  if (method === "POST") {
+  if (method === "POST" && body !== null) {
     options.body = JSON.stringify(body);
   }
 

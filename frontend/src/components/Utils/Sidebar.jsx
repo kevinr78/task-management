@@ -1,6 +1,7 @@
 import { useContext } from "react";
 import Button from "./Button";
 import { ProjectContext } from "../../Store/ProjectContextProvider";
+import { userDetails } from "../../utils/user";
 import { useNavigate, useLoaderData } from "react-router-dom";
 
 export default function Sidebar({ onStartAddProject }) {
@@ -10,12 +11,13 @@ export default function Sidebar({ onStartAddProject }) {
   function handleCurrentSelectedProject(id) {
     operations.selectProject(id);
   }
+  const name = userDetails?.name || localStorage.getItem("name");
 
   return (
     <aside className="w-1/3 px-8 py-16 bg-stone-900 text-stone-50 md:w-72 flex flex-col">
       <div>
         <h2 className="text-2xl font-bold mb-4">
-          Welcome, {localStorage.getItem("name").split(" ")[0]}
+          Welcome, {name.split(" ")[0]}
         </h2>
       </div>
       <div>
@@ -46,7 +48,6 @@ export default function Sidebar({ onStartAddProject }) {
             <li key={project._id}>
               <button
                 onClick={() => {
-                  console.log(project);
                   navigate(`/home/project/${project._id}`);
                 }}
                 className={cssClasses}

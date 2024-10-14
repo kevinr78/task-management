@@ -7,6 +7,7 @@ import {
   removeTaskFromProject,
   getAllProjects,
   deleteProject,
+  markTaskAsCompleted,
 } from "../controllers/project.controller.js";
 const projectRouter = express.Router();
 
@@ -16,5 +17,6 @@ projectRouter.post("/deleteProject", verifyJWT, deleteProject);
 projectRouter.post("/getProject", verifyJWT, getProjectById);
 projectRouter.post("/addTaskToProject", verifyJWT, addTaskToProject);
 projectRouter.post("/removeTaskFromProject", verifyJWT, removeTaskFromProject);
+projectRouter.post("/markTaskAsCompleted", verifyJWT, markTaskAsCompleted);
 
 export default projectRouter;

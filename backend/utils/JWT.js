@@ -19,6 +19,7 @@ const verifyJWT = function (req, res, next) {
     }
 
     req.currentUser = verifiedToken;
+
     next();
   } catch (error) {
     next(error);
