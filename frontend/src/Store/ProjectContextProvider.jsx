@@ -1,6 +1,10 @@
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useEffect, useState, useCallback, useRef } from "react";
 import sendAPIRequest from "../utils/ApiRequest";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
+/* import io, { socket } from "../utils/socket"; */
+import io from "socket.io-client";
+import { toast } from "react-toastify";
+import { userDetails } from "../utils/user";
 
 export const ProjectContext = createContext({
   projectData: {},
@@ -11,65 +15,120 @@ export const ProjectContext = createContext({
   startAddProject: () => {},
   addProjectTask: () => {},
   removeTask: () => {},
+  markTask: () => {},
 });
+
+const SOCKET_SERVER_URL = "http://localhost:8080";
+
 export default function ProjectContextProvider({ children }) {
   const { projectId } = useParams();
+  const navigate = useNavigate();
   const [projectsState, setProjectsState] = useState({
     projects: [],
     selectedProjectId: undefined,
-    currentSelectedProject: undefined,
+    currentSelectedProject: null,
   });
+  const id = localStorage.getItem("id");
+
+  const socketRef = useRef();
 
   useEffect(() => {
-    const fetchData = async () => {
-      const request = await sendAPIRequest("GET", null, "getAllProjects");
+    socketRef.current = io(SOCKET_SERVER_URL);
+    socketRef.current.on("connect", () => {
+      console.log("Connected IO");
+    });
+    socketRef.current.on("disconnect", () => {
+      console.log("DisConnected IO");
+    });
 
-      if (!request.ok) {
-        console.error("Error while getting projects");
-        return;
-      }
-      setProjectsState({
-        projects: request.data,
-        selectedProjectId: undefined,
-        currentSelectedProject: undefined,
+    socketRef.current.on("notification", (data) => {
+      toast.info(data);
+      fetchAllProjects();
+    });
+
+    socketRef.current.emit("register", id);
+
+    return () => {
+      socketRef.current.off("connect", () => {
+        console.log(" Off Connected IO");
+      });
+      socketRef.current.off("notification");
+      socketRef.current.off("disconnect", () => {
+        socketRef.current.log("DIsConnected IO");
       });
     };
-    fetchData();
   }, []);
 
-  async function handleSelectProject(data) {
-    setProjectsState((prevState) => {
-      return {
+  const fetchAllProjects = async () => {
+    const request = await sendAPIRequest("GET", null, "getAllProjects");
+
+    if (!request.ok) {
+      toast.error("Error while getting projects");
+
+      return;
+    }
+
+    setProjectsState((prevState) => ({
+      ...prevState,
+      projects: request.data,
+    }));
+  };
+
+  useEffect(() => {
+    fetchAllProjects();
+  }, []);
+
+  /* useEffect(() => {
+    if (!projectId) return;
+
+    const fetchSelectedProject = async () => {
+      const { ok, data } = await sendAPIRequest(
+        "POST",
+        { id: projectId, userId: localStorage.getItem("id") },
+        "getProject"
+      );
+
+      if (!ok) {
+        console.error("Error while getting project");
+        return;
+      }
+
+      setProjectsState((prevState) => ({
         ...prevState,
-        selectedProjectId: data._id,
+        selectedProjectId: projectId,
         currentSelectedProject: data,
-      };
-    });
-  }
+      }));
+    };
 
-  function showNoProjectSelected() {
-    setProjectsState((prevState) => {
-      return {
-        ...prevState,
-        selectedProjectId: undefined,
-      };
-    });
-  }
+    fetchSelectedProject();
+  }, [projectId]); */
 
-  function handleAddNewProject(project) {
-    setProjectsState((prevState) => {
-      return {
-        ...prevState,
-        projects: [
-          ...prevState.projects,
-          { _id: project.projectId, title: project.title },
-        ],
-      };
-    });
-  }
+  const handleSelectProject = useCallback((data) => {
+    setProjectsState((prevState) => ({
+      ...prevState,
+      selectedProjectId: data._id,
+      currentSelectedProject: data,
+    }));
+  }, []);
 
-  async function handleProjectDelete() {
-    console.log(projectsState);
+  const showNoProjectSelected = useCallback(() => {
+    setProjectsState((prevState) => ({
+      ...prevState,
+      selectedProjectId: undefined,
+    }));
+  }, []);
+
+  const handleAddNewProject = useCallback((project) => {
+    setProjectsState((prevState) => ({
+      ...prevState,
+      projects: [
+        ...prevState.projects,
+        { _id: project.projectId, title: project.title },
+      ],
+    }));
+  }, []);
+
+  const handleProjectDelete = useCallback(async () => {
     const request = await sendAPIRequest(
       "POST",
       { id: projectsState.selectedProjectId },
@@ -77,71 +136,132 @@ export default function ProjectContextProvider({ children }) {
     );
 
     if (!request.ok) {
-      console.error("Error while deleting project");
+      toast.error("Error while deleting project");
       return;
     }
 
-    const somet = projectsState.projects.filter((project) => {
-      return project._id !== request.data._id;
-    });
+    const updatedProjects = projectsState.projects.filter(
+      (project) => project._id !== request.data._id
+    );
 
-    setProjectsState((prevState) => {
-      return {
+    socketRef.current.emit("projectDelete", { id });
+    socketRef.current.disconnect();
+    navigate("/home");
+    setProjectsState((prevState) => ({
+      ...prevState,
+      selectedProjectId: undefined,
+      currentSelectedProject: null,
+      projects: updatedProjects,
+    }));
+  }, [projectsState.selectedProjectId, projectsState.projects]);
+
+  const handleStartAddProject = useCallback(() => {
+    setProjectsState((prevState) => ({
+      ...prevState,
+      selectedProjectId: null,
+    }));
+  }, []);
+
+  const handleAddProjectTasks = useCallback(
+    async ({ taskTitle, assignedTo }) => {
+      const request = await sendAPIRequest(
+        "POST",
+        {
+          id: projectsState.selectedProjectId,
+          assignedTo,
+          taskTitle,
+          completed: false,
+        },
+        "addTaskToProject"
+      );
+
+      if (!request.ok) {
+        toast.error("Error while adding tasks to project");
+        return;
+      }
+      const tasks = request.data.tasks;
+      const message = `Task ${taskTitle} has been added to project ${
+        request.data.title
+      } and assigned to ${tasks[tasks.length - 1].username}`;
+
+      /*   const sendNotificationRequest = await sendAPIRequest(
+        "POST",
+        {
+          from: request.data.by_user,
+          to: assignedTo,
+          message,
+        },
+        "sendNotification"
+      );
+
+      if (!sendNotificationRequest.ok) {
+        console.error("Error while sending notification");
+        return;
+      } */
+
+      socketRef.current.emit("notification", {
+        from: request.data.by_user,
+        to: assignedTo,
+        message,
+      });
+      socketRef.current.disconnect();
+
+      setProjectsState((prevState) => ({
         ...prevState,
-        selectedProjectId: undefined,
-        projects: somet,
-      };
-    });
-  }
+        currentSelectedProject: request.data,
+      }));
+    },
+    [projectsState.selectedProjectId]
+  );
 
-  function handleStartAddProject() {
-    setProjectsState((prevState) => {
-      return {
+  const removeTaskFromProject = useCallback(
+    async (id) => {
+      const request = await sendAPIRequest(
+        "POST",
+        { id: projectsState.selectedProjectId, taskId: id },
+        "removeTaskFromProject"
+      );
+
+      if (!request.ok) {
+        toast.error("Error while removing task from project");
+        return;
+      }
+
+      socketRef.current.emit("removeTask", {
+        from: request.data.by_user,
+        pid: projectsState.selectedProjectId,
+        taskId: id,
+      });
+      socketRef.current.disconnect();
+
+      setProjectsState((prevState) => ({
         ...prevState,
-        selectedProjectId: null,
-      };
-    });
-  }
+        currentSelectedProject: {
+          ...prevState.currentSelectedProject,
+          tasks: prevState.currentSelectedProject.tasks.filter((task) => {
+            return task._id !== id;
+          }),
+        },
+      }));
+    },
+    [projectsState.currentSelectedProject]
+  );
 
-  async function handleAddProjectTasks(task) {
+  const markTaskAsCompleted = async (id, isChecked) => {
+    const userId = userDetails.id || localStorage.getItem("id");
     const request = await sendAPIRequest(
       "POST",
-      { id: projectsState.selectedProjectId, task, completed: false },
-      "addTaskToProject"
+      { pid: projectsState.selectedProjectId, taskId: id, userId, isChecked },
+      "markTaskAsCompleted"
     );
 
     if (!request.ok) {
-      console.error("Error while adding tasks to project");
+      toast.error("Error while marking task as completed");
       return;
     }
 
-    setProjectsState((prevState) => {
-      return {
-        ...prevState,
-        currentSelectedProject: request.data,
-      };
-    });
-  }
-
-  async function removeTaskFromProject(id) {
-    const request = await sendAPIRequest(
-      "POST",
-      { id: projectsState.selectedProjectId, taskId: id },
-      "removeTaskFromProject"
-    );
-
-    if (!request.ok) {
-      console.error("Error while adding tasks to project");
-      return;
-    }
-
-    setProjectsState((prevState) => {
-      return {
-        ...prevState,
-        currentSelectedProject: request.data,
-      };
-    });
-  }
+    
+  };
 
   const projectContext = {
     projectData: projectsState,
@@ -152,6 +272,7 @@ export default function ProjectContextProvider({ children }) {
     startAddProject: handleStartAddProject,
     addProjectTask: handleAddProjectTasks,
     removeTask: removeTaskFromProject,
+    markTask: markTaskAsCompleted,
   };
 
   return (
