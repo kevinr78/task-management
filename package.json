@@ -1,0 +1,24 @@
+{
+  "name": "project-management-app",
+  "version": "1.0.0",
+  "description": "1.Login / Registration 2. Admin / User --> Login 3. Admin --> Add User/ Assign Task to User 4. User --> View Task/ Update Task Status 5. Admin --> View All Users/ View All Tasks",
+  "main": "index.js",
+  "scripts": {
+    "install-server": "cd backend && npm install",
+    "start-server": "cd backend && node index.js",
+    "install-client": "cd client && npm install",
+    "build-client": "cd client && npm run build",
+    "start-client": "cd client && npm run start"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kevinr78/task-management.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/kevinr78/task-management/issues"
+  },
+  "homepage": "https://github.com/kevinr78/task-management#readme"
+}
